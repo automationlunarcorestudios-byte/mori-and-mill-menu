@@ -1,0 +1,1 @@
+window.FLIPBOOK_PAGES = [{"title":"Christmas Wraps","src":"pages/01.jpg"},{"title":"Christmas Rice","src":"pages/02.jpg"},{"title":"Christmas Classics","src":"pages/03.jpg"},{"title":"Christmas by the Sea","src":"pages/04.jpg"},{"title":"Christmas Comforts","src":"pages/05.jpg"}];

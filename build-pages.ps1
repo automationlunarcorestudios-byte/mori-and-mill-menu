@@ -1,21 +1,24 @@
-# Rebuilds the flipbook's pages from the catalog artwork.
+# Rebuilds a flipbook edition's pages from the catalog artwork.
 # Run after adding, removing or replacing page images:
 #   powershell -ExecutionPolicy Bypass -File build-pages.ps1
+#   powershell -ExecutionPolicy Bypass -File build-pages.ps1 -Source ..\christmas-menu -Out christmas\pages
 #
-# Reads catalog-manifest.json (page order + titles) and writes:
-#   pages/NN.jpg               web-sized copies of each page
-#   pages/pages.js             page list used by index.html
-#   pages/pages-embedded.js    the same pages inlined, so index.html also works
-#                              when opened straight from disk (file://)
+# Reads catalog-manifest.json (page order + titles) from -Source and writes to -Out:
+#   NN.jpg               web-sized copies of each page
+#   pages.js             page list used by the edition's index.html
+#   pages-embedded.js    the same pages inlined, so index.html also works
+#                        when opened straight from disk (file://)
 param(
   [string]$Source = (Join-Path $PSScriptRoot '..\mori and mill page\ai-catalog-photos'),
+  [string]$Out = 'pages',
   [int]$Quality = 88
 )
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 
-$out = Join-Path $PSScriptRoot 'pages'
+if (-not [IO.Path]::IsPathRooted($Source)) { $Source = Join-Path $PSScriptRoot $Source }
+$out = if ([IO.Path]::IsPathRooted($Out)) { $Out } else { Join-Path $PSScriptRoot $Out }
 New-Item -ItemType Directory -Force $out | Out-Null
 Get-ChildItem $out -Filter '*.jpg' | Remove-Item
 

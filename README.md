@@ -4,6 +4,13 @@ A 3D page-turning flipbook of the Mori & Mill menu, built with [three.js](https:
 
 **View it:** open the GitHub Pages link for this repository, or download the repo and double-click `index.html`.
 
+| Edition | Folder | Link |
+|---|---|---|
+| Full menu | `/` | https://automationlunarcorestudios-byte.github.io/mori-and-mill-menu/ |
+| Christmas menu | `christmas/` | https://automationlunarcorestudios-byte.github.io/mori-and-mill-menu/christmas/ |
+
+Both editions share `flipbook.js` and `flipbook.css`; each has its own `index.html` and `pages/`.
+
 ## Turning pages
 
 - Drag a page, or click the right or left page
@@ -13,6 +20,8 @@ A 3D page-turning flipbook of the Mori & Mill menu, built with [three.js](https:
 
 ## Changing things
 
-- **Button text, link, speed, page bend, sound:** the `CONFIG` block at the top of the script in `index.html`
-- **Colours:** the `:root` block at the top of the `<style>` in `index.html`
-- **Pages:** replace the artwork and run `build-pages.ps1`. It rebuilds `pages/` from `catalog-manifest.json`.
+- **Button text, link, speed, page bend, sound:** the `CONFIG` block at the top of `flipbook.js`. To change one edition only, add `<script>window.FLIPBOOK_CONFIG = { buttonText: '…' }</script>` before `flipbook.js` in that edition's `index.html`.
+- **Colours:** the `:root` block at the top of `flipbook.css`. The Christmas edition overrides them in a `<style>` in `christmas/index.html`.
+- **Pages:** replace the artwork and run `build-pages.ps1`. It rebuilds an edition's `pages/` from its `catalog-manifest.json`:
+  - Full menu: `build-pages.ps1`
+  - Christmas: `build-pages.ps1 -Source ..\christmas-menu -Out christmas\pages`

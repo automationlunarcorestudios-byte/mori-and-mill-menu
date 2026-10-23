@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mori &amp; Mill Christmas Menu</title>
+<meta name="description" content="Flip through the Mori & Mill Christmas menu.">
+<link rel="stylesheet" href="../flipbook.css">
+<style>
+  /* Christmas edition: evergreen stage, ribbon-gold accents */
+  :root {
+    --bg: #12302a;
+    --counter: #e8c97a;
+    --btn-bg: #e8c97a;
+    --btn-text: #06566d;
+    --panel: rgba(10, 32, 27, .97);
+  }
+</style>
+</head>
+<body>
+
+<div id="stage" aria-label="Mori & Mill Christmas menu flipbook" role="img"></div>
+
+<header class="topbar">
+  <button class="icon-btn" id="btn-thumbs" aria-label="Show all pages" aria-controls="thumbs-panel" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18M12 4v16"/></svg>
+  </button>
+  <div class="counter" id="counter" aria-hidden="true"></div>
+  <div class="right">
+    <button class="icon-btn" id="btn-share" aria-label="Share">
+      <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" stroke="currentColor" stroke-width="2"/></svg>
+    </button>
+    <button class="icon-btn" id="btn-more" aria-label="More options" aria-haspopup="true" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="menu" id="menu" role="menu">
+  <button role="menuitem" id="menu-first">Go to cover</button>
+  <button role="menuitem" id="menu-last">Go to last page</button>
+  <button role="menuitem" id="menu-sound">Sound: on</button>
+</div>
+
+<aside class="panel" id="thumbs-panel" aria-label="All pages">
+  <h2>Pages</h2>
+  <button class="icon-btn panel-close" id="thumbs-close" aria-label="Close pages">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <div class="thumbs" id="thumbs"></div>
+</aside>
+
+<button class="icon-btn nav-arrow prev" id="btn-prev" aria-label="Previous page">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4l-8 8 8 8"/></svg>
+</button>
+<button class="icon-btn nav-arrow next" id="btn-next" aria-label="Next page">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4l8 8-8 8"/></svg>
+</button>
+
+<a class="order-btn" id="order-btn" target="_blank" rel="noopener"></a>
+
+<div class="bottombar">
+  <button class="icon-btn" id="btn-zoom-out" aria-label="Zoom out">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/></svg>
+  </button>
+  <button class="icon-btn" id="btn-zoom-in" aria-label="Zoom in">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5v14"/></svg>
+  </button>
+  <button class="icon-btn" id="btn-play" aria-label="Autoplay">
+    <svg viewBox="0 0 24 24" fill="currentColor" id="icon-play"><path d="M7 4.5v15l13-7.5z"/></svg>
+  </button>
+  <button class="icon-btn" id="btn-full" aria-label="Fullscreen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>
+  </button>
+</div>
+
+<div class="preloader" id="preloader"><div><div class="ring"></div><p id="preloader-text">Loading Christmas menu…</p></div></div>
+<div class="toast" id="toast" role="status"></div>
+<div class="sr-only" id="announce" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="../flipbook.js"></script>
+</body>
+</html>
