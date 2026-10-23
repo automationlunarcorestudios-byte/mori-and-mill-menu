@@ -29,6 +29,7 @@ jobs:
         run: |
           find . -name index.html -not -path './.git/*' -exec sed -i "s/?v=dev/?v=${GITHUB_SHA::7}/g" {} +
           sed -i "s#'pages/pages.js'#'pages/pages.js?v=${GITHUB_SHA::7}'#" flipbook.js
+          find . -path '*/pages/pages.js' -exec sed -i "s/\.jpg\"/.jpg?v=${GITHUB_SHA::7}\"/g" {} +
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

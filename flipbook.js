@@ -15,6 +15,8 @@ const CONFIG = Object.assign({
   hoverLift: 0.14,         // how far a page corner lifts under the mouse (radians); 0 = off
   gloss: 0.62,             // page roughness: 1 = matte paper, lower = glossier magazine stock
   sound: true,             //                               (sound true)
+  music: null,             // background music file, relative to the edition's index.html; null = none
+  musicVolume: 0.35,
   ambientLight: 0.62,      // overall page brightness
   sunLight: 0.42,          // directional light that shades bends (lightIntensity 0.6)
   shadows: true,           //                               (shadows true, shadowMapSize 2048)
@@ -670,6 +672,80 @@ function playFlipSound() {
 // ---------------------------------------------------------------------------
 // Toolbar
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Background music — an edition opts in with CONFIG.music. Browsers only allow sound after the
+// reader interacts, so it fades in on their first tap, click or key press unless they muted it.
+// ---------------------------------------------------------------------------
+const NOTE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>';
+const NOTE_OFF_ICON = NOTE_ICON.replace('</svg>', '<path d="M3 3l18 18"/></svg>');
+
+function setupMusic() {
+  if (!CONFIG.music) return;
+  const audio = new Audio(CONFIG.music);
+  audio.loop = true;
+  audio.preload = 'auto';
+  audio.volume = 0;
+
+  let on = true;                       // the reader's choice; remembered between visits
+  try { on = localStorage.getItem('flipbook-music') !== 'off'; } catch (_) {}
+  let fadeTimer = null;
+
+  const btn = document.createElement('button');
+  btn.className = 'icon-btn';
+  btn.id = 'btn-music';
+  document.querySelector('.bottombar').prepend(btn);
+
+  const render = () => {
+    const playing = !audio.paused;
+    btn.innerHTML = playing ? NOTE_ICON : NOTE_OFF_ICON;
+    btn.setAttribute('aria-label', playing ? 'Mute music' : 'Play music');
+    btn.setAttribute('aria-pressed', String(playing));
+    btn.classList.toggle('waiting', on && !playing);   // nudges the reader that music is waiting for a tap
+  };
+
+  const fadeTo = (target, ms, done) => {
+    clearInterval(fadeTimer);
+    const from = audio.volume, start = performance.now();
+    fadeTimer = setInterval(() => {
+      const t = Math.min(1, (performance.now() - start) / ms);
+      audio.volume = from + (target - from) * t;
+      if (t >= 1) { clearInterval(fadeTimer); if (done) done(); }
+    }, 40);
+  };
+
+  const start = () => {
+    if (!on || !audio.paused) return;
+    audio.play().then(() => { fadeTo(CONFIG.musicVolume, 1500); render(); }).catch(() => { /* not allowed yet */ });
+  };
+  const stop = () => fadeTo(0, 350, () => { audio.pause(); render(); });
+
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    on = audio.paused;
+    try { localStorage.setItem('flipbook-music', on ? 'on' : 'off'); } catch (_) {}
+    on ? start() : stop();
+    render();
+  });
+
+  // First interaction anywhere else unlocks audio. Touch counts on release, mouse on press.
+  const unlock = e => {
+    if (e.target.closest && e.target.closest('#btn-music')) return;
+    start();
+  };
+  ['pointerdown', 'pointerup', 'keydown'].forEach(type => document.addEventListener(type, unlock, true));
+  audio.addEventListener('play', () => {
+    ['pointerdown', 'pointerup', 'keydown'].forEach(type => document.removeEventListener(type, unlock, true));
+  }, { once: true });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { if (!audio.paused) { clearInterval(fadeTimer); audio.pause(); audio.volume = 0; } }
+    else if (on && audio.currentTime > 0) start();
+  });
+  audio.addEventListener('pause', render);
+  audio.addEventListener('play', render);
+  render();
+}
+
 let autoplayTimer = null;
 function setAutoplay(on) {
   clearInterval(autoplayTimer);
@@ -779,6 +855,7 @@ function buildUI() {
     if (!e.target.closest('.menu, .panel, #btn-more, #btn-thumbs')) closeOverlays();
   });
   window.addEventListener('resize', layout);
+  setupMusic();
   setZoom(1);
 }
 

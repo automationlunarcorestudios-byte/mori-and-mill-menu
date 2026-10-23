@@ -21,6 +21,10 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
 .icon-btn:focus-visible, .cta-btn:focus-visible, .thumb:focus-visible, .menu button:focus-visible { outline: 2px solid var(--counter); outline-offset: 2px; }
 .icon-btn[disabled] { opacity: .3; cursor: default; background: none; }
 .icon-btn svg { width: 22px; height: 22px; }
+/* music is on but waiting for the reader's first tap */
+.icon-btn.waiting { color: var(--counter); }
+.icon-btn.waiting svg { animation: nudge 1.8s ease-in-out infinite; }
+@keyframes nudge { 0%, 100% { transform: none; } 50% { transform: translateY(-3px) rotate(-8deg); } }
 
 .topbar { position: fixed; top: 0; left: 0; right: 0; height: 56px; z-index: 5;
   padding: env(safe-area-inset-top, 0px) calc(8px + env(safe-area-inset-right, 0px)) 0 calc(8px + env(safe-area-inset-left, 0px));
@@ -95,4 +99,4 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
   .bottombar { right: calc(8px + env(safe-area-inset-right, 0px)); bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
   .bottombar .icon-btn { width: 40px; height: 40px; }
 }
-@media (prefers-reduced-motion: reduce) { .panel, .cta-btn { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .panel, .cta-btn { transition: none; } .icon-btn.waiting svg { animation: none; } }
