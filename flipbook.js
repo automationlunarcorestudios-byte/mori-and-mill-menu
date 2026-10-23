@@ -17,6 +17,8 @@ const CONFIG = Object.assign({
   sound: true,             //                               (sound true)
   music: null,             // background music file, relative to the edition's index.html; null = none
   musicVolume: 0.35,
+  topSpace: 58,            // px kept clear above the book (more when an edition decorates the top edge)
+  clearStage: false,       // true = draw the book over a see-through stage, so an edition's backdrop shows
   ambientLight: 0.62,      // overall page brightness
   sunLight: 0.42,          // directional light that shades bends (lightIntensity 0.6)
   shadows: true,           //                               (shadows true, shadowMapSize 2048)
@@ -27,7 +29,7 @@ const CONFIG = Object.assign({
   singlePageBelow: 768,    // portrait screens narrower than this show one page at a time (responsiveViewTreshold)
 }, window.FLIPBOOK_CONFIG);
 
-const TOP_SPACE = 58, BOTTOM_SPACE = 66, SIDE_SPACE = 70; // px kept clear of the toolbars and arrows
+const TOP_SPACE = CONFIG.topSpace, BOTTOM_SPACE = 66, SIDE_SPACE = 70; // px kept clear of the toolbars and arrows
 const SEGMENTS = 40;      // columns across a page; more = smoother curl
 const ROWS = 16;          // rows down a page; lets the fold run diagonally
 const SHEET_GAP = 0.002;  // depth between stacked sheets
@@ -223,10 +225,10 @@ class Sheet {
 }
 
 function buildScene() {
-  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: CONFIG.clearStage });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputEncoding = THREE.sRGBEncoding;
-  renderer.setClearColor(getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
+  renderer.setClearColor(getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(), CONFIG.clearStage ? 0 : 1);
   renderer.shadowMap.enabled = CONFIG.shadows;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   stage.appendChild(renderer.domElement);
@@ -366,6 +368,8 @@ function layout() {
   camera.aspect = vw / vh;
   camera.updateProjectionMatrix();
   if (wasSingle !== single) changed();
+  // lets an edition's decorations redraw around the book
+  window.dispatchEvent(new CustomEvent('flipbook:layout', { detail: bookScreenRect() }));
   needsRender = true;
 }
 
@@ -375,6 +379,14 @@ function fitHeight() {
   const availW = Math.max(100, vw - 2 * (single ? 36 : SIDE_SPACE));
   const availH = Math.max(100, vh - TOP_SPACE - BOTTOM_SPACE);
   return Math.max(H * vh / availH, needW * vh / availW) * 1.04;
+}
+
+// Where the open book sits on screen at normal zoom, in CSS pixels.
+function bookScreenRect() {
+  const s = vh / fitHeight();
+  const w = (single ? W : 2 * W) * s, h = H * s;
+  const cy = vh / 2 + (TOP_SPACE - BOTTOM_SPACE) / 2;
+  return { left: (vw - w) / 2, top: cy - h / 2, width: w, height: h, vw, vh };
 }
 
 // Closed book sits centred: cover alone shifts left by half a page, back cover alone shifts right.

@@ -15,6 +15,15 @@
     --btn-text: #06566d;
     --panel: rgba(10, 32, 27, .97);
   }
+  /* decorations (drawn by decor.js) sit around the book, under the controls, and never catch clicks */
+  .decor { position: fixed; inset: 0; pointer-events: none; }
+  .decor.front { z-index: 3; }
+  .topbar { background: none; }
+  .topbar .icon-btn, .bottombar, .nav-arrow { filter: drop-shadow(0 1px 3px rgba(0, 0, 0, .85)); }
+  /* round backings keep the top controls readable over the ornaments */
+  .topbar .icon-btn { width: 40px; height: 40px; margin: 2px; border-radius: 50%; background: rgba(8, 30, 24, .78); }
+  .topbar .icon-btn:hover { background: rgba(8, 30, 24, .95); }
+  .counter { background: rgba(8, 30, 24, .78); padding: 3px 12px; border-radius: 999px; }
 </style>
 </head>
 <body>
@@ -79,7 +88,8 @@
 <div class="sr-only" id="announce" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>window.FLIPBOOK_CONFIG = { music: 'music/deck-the-halls.mp3' };</script>
+<script>window.FLIPBOOK_CONFIG = { music: 'music/deck-the-halls.mp3', topSpace: 92, clearStage: true };</script>
 <script src="../flipbook.js?v=dev"></script>
+<script src="decor.js?v=dev"></script>
 </body>
 </html>
