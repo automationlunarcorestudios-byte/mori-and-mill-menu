@@ -4,8 +4,11 @@
 // Settings — the Landers (Real3D FlipBook) values are noted where they map.
 // ---------------------------------------------------------------------------
 const CONFIG = Object.assign({
-  buttonText: 'ORDER NOW',
-  buttonUrl: 'https://www.moriandmill.com/digitalmenu-page',
+  // Bottom-left buttons, in order. style: 'outline' gives the lighter secondary look.
+  buttons: [
+    { text: 'ORDER NOW', url: 'https://www.facebook.com/messages/t/1076302612237604' },   // Mori & Mill Messenger
+    { text: 'RESERVE NOW', url: 'https://moriandmill.com/digitalmenu-page', style: 'outline' },
+  ],
   flipDuration: 1000,      // ms per page turn             (pageFlipDuration 1)
   pageBend: 0.7,           // 0 = stiff board, 0.9 = floppy (pageHardness)
   sound: true,             //                               (sound true)
@@ -602,9 +605,15 @@ function closeOverlays() {
 }
 
 function buildUI() {
-  const order = $('order-btn');
-  order.textContent = CONFIG.buttonText;
-  order.href = CONFIG.buttonUrl;
+  CONFIG.buttons.forEach(btn => {
+    const a = document.createElement('a');
+    a.className = 'cta-btn' + (btn.style === 'outline' ? ' outline' : '');
+    a.textContent = btn.text;
+    a.href = btn.url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    $('cta').appendChild(a);
+  });
 
   const thumbs = $('thumbs');
   pages.forEach((p, i) => {

@@ -20,7 +20,7 @@ Both editions share `flipbook.js` and `flipbook.css`; each has its own `index.ht
 
 ## Changing things
 
-- **Button text, link, speed, page bend, sound:** the `CONFIG` block at the top of `flipbook.js`. To change one edition only, add `<script>window.FLIPBOOK_CONFIG = { buttonText: '…' }</script>` before `flipbook.js` in that edition's `index.html`.
+- **Buttons (ORDER NOW / RESERVE NOW) and their links, speed, page bend, sound:** the `CONFIG` block at the top of `flipbook.js`. To change one edition only, add `<script>window.FLIPBOOK_CONFIG = { buttons: [ … ] }</script>` before `flipbook.js` in that edition's `index.html`.
 - **Colours:** the `:root` block at the top of `flipbook.css`. The Christmas edition overrides them in a `<style>` in `christmas/index.html`.
 - **Pages:** replace the artwork and run `build-pages.ps1`. It rebuilds an edition's `pages/` from its `catalog-manifest.json`:
   - Full menu: `build-pages.ps1`
