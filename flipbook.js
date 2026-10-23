@@ -9,11 +9,14 @@ const CONFIG = Object.assign({
     { text: 'ORDER NOW', url: 'https://www.facebook.com/messages/t/1076302612237604' },   // Mori & Mill Messenger
     { text: 'RESERVE NOW', url: 'https://moriandmill.com/digitalmenu-page', style: 'outline' },
   ],
-  flipDuration: 1000,      // ms per page turn             (pageFlipDuration 1)
-  pageBend: 0.7,           // 0 = stiff board, 0.9 = floppy (pageHardness)
+  flipDuration: 900,       // ms per page turn             (pageFlipDuration 1)
+  pageBend: 0.5,           // paper curl: 0 = stiff board, 0.55 = floppy magazine (pageHardness)
+  cornerPeel: 0.4,         // how far the held corner runs ahead, giving a diagonal fold; 0 = straight fold
+  hoverLift: 0.14,         // how far a page corner lifts under the mouse (radians); 0 = off
+  gloss: 0.62,             // page roughness: 1 = matte paper, lower = glossier magazine stock
   sound: true,             //                               (sound true)
-  ambientLight: 0.72,      // overall page brightness
-  sunLight: 0.3,           // directional light that shades bends (lightIntensity 0.6)
+  ambientLight: 0.62,      // overall page brightness
+  sunLight: 0.42,          // directional light that shades bends (lightIntensity 0.6)
   shadows: true,           //                               (shadows true, shadowMapSize 2048)
   spineShadow: 0.32,       // darkness of the centre fold   (pageMiddleShadow*)
   panMax: 20,              // degrees the book tilts when dragging the background (panMin/panMax ±20)
@@ -23,7 +26,8 @@ const CONFIG = Object.assign({
 }, window.FLIPBOOK_CONFIG);
 
 const TOP_SPACE = 58, BOTTOM_SPACE = 66, SIDE_SPACE = 70; // px kept clear of the toolbars and arrows
-const SEGMENTS = 48;      // vertical strips per page; more = smoother bend
+const SEGMENTS = 40;      // columns across a page; more = smoother curl
+const ROWS = 16;          // rows down a page; lets the fold run diagonally
 const SHEET_GAP = 0.002;  // depth between stacked sheets
 const THICKNESS = 0.0008; // front/back separation of one sheet
 const PI = Math.PI;
@@ -107,74 +111,108 @@ function pageTexture(page, spineSide) {
 
 // One physical sheet: front = a right-hand page, back = the left-hand page after it.
 // It hinges on the spine (x = 0) and turns through `angle` 0 (lying right) .. PI (lying left).
+// The page is a grid of columns × rows; every row bends a little differently so the paper
+// peels from a corner and curls like a magazine page instead of swinging like a board.
 class Sheet {
   constructor(index, front, back) {
     this.index = index;
     this.angle = 0;
-    this.dir = 1;       // +1 turning forward, -1 turning back (the pulled edge leads)
+    this.dir = 1;         // +1 turning forward, -1 turning back
+    this.grabTop = false; // which corner is held: the bottom one unless the reader grabbed the top
+    this.peek = 0;        // hover lift (radians), eased toward peekTarget
+    this.peekTarget = 0;
     this.anim = null;
 
-    const verts = (SEGMENTS + 1) * 2;
+    const cols = SEGMENTS + 1, side = cols * (ROWS + 1);
     const geo = new THREE.BufferGeometry();
-    this.pos = new Float32Array(verts * 2 * 3);
-    this.nrm = new Float32Array(verts * 2 * 3);
-    const uv = new Float32Array(verts * 2 * 2);
+    this.pos = new Float32Array(side * 2 * 3);
+    this.nrm = new Float32Array(side * 2 * 3);
+    this.front = new Float32Array(side * 3);   // scratch: front surface before thickness
+    const uv = new Float32Array(side * 2 * 2);
     const idx = [];
-    for (let side = 0; side < 2; side++) {
+    for (let r = 0; r <= ROWS; r++) {
       for (let j = 0; j <= SEGMENTS; j++) {
-        for (let k = 0; k < 2; k++) {
-          const v = side * verts + j * 2 + k;
-          uv[v * 2] = side ? 1 - j / SEGMENTS : j / SEGMENTS;
-          uv[v * 2 + 1] = k;
+        const i = r * cols + j;
+        uv[i * 2] = j / SEGMENTS;                 uv[i * 2 + 1] = r / ROWS;
+        uv[(side + i) * 2] = 1 - j / SEGMENTS;    uv[(side + i) * 2 + 1] = r / ROWS;
+      }
+    }
+    for (let s = 0; s < 2; s++) {
+      for (let r = 0; r < ROWS; r++) {
+        for (let j = 0; j < SEGMENTS; j++) {
+          const a = s * side + r * cols + j, b = a + 1, c = a + cols + 1, d = a + cols;
+          if (s === 0) idx.push(a, b, c, a, c, d);
+          else idx.push(a, c, b, a, d, c);
         }
       }
     }
-    for (let side = 0; side < 2; side++) {
-      const o = side * verts;
-      for (let j = 0; j < SEGMENTS; j++) {
-        const a = o + j * 2, b = o + (j + 1) * 2, c = b + 1, d = a + 1;
-        if (side === 0) idx.push(a, b, c, a, c, d);
-        else idx.push(a, c, b, a, d, c);
-      }
-    }
+    const faces = SEGMENTS * ROWS * 6;
     geo.setIndex(idx);
     geo.setAttribute('position', new THREE.BufferAttribute(this.pos, 3));
     geo.setAttribute('normal', new THREE.BufferAttribute(this.nrm, 3));
     geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
-    geo.addGroup(0, SEGMENTS * 6, 0);
-    geo.addGroup(SEGMENTS * 6, SEGMENTS * 6, 1);
+    geo.addGroup(0, faces, 0);
+    geo.addGroup(faces, faces, 1);
     this.geo = geo;
 
-    const mat = tex => new THREE.MeshStandardMaterial({ map: tex, roughness: 1, metalness: 0 });
+    const mat = tex => new THREE.MeshStandardMaterial({ map: tex, roughness: CONFIG.gloss, metalness: 0 });
     this.mesh = new THREE.Mesh(geo, [mat(pageTexture(front, 'left')), mat(pageTexture(back, 'right'))]);
     this.mesh.castShadow = this.mesh.receiveShadow = CONFIG.shadows;
     this.mesh.frustumCulled = false;
     this.update();
   }
 
+  // Turn angle including any hover lift, which always lifts away from the side the sheet rests on.
+  get turn() { return this.angle + (this.angle >= PI / 2 ? -this.peek : this.peek); }
+
   update() {
-    const a0 = this.angle;
-    const bend = CONFIG.pageBend * Math.sin(a0) * this.dir;
+    const a0 = this.turn, s = Math.sin(a0);
+    const q = this.dir > 0 ? a0 / PI : 1 - a0 / PI;   // progress of this turn: 0 lifting .. 1 landed
+    // Curl: the pulled edge leads while the page rises, then trails behind as air catches it on the way down.
+    const curl = CONFIG.pageBend * s * (1 - 1.8 * q) * this.dir;
+    // Peel: the held corner runs ahead of the far one, so the fold line is diagonal.
+    const peel = CONFIG.cornerPeel * s * this.dir;
+    // (Every offset above is a fraction of sin(a0) below 1, which keeps the page between 0 and PI: it never dips into the book.)
+
     const t = a0 / PI;
     const zOff = ((N - this.index) * (1 - t) + (this.index + 1) * t) * SHEET_GAP;
-    const ds = W / SEGMENTS, verts = (SEGMENTS + 1) * 2;
-    const p = this.pos, n = this.nrm;
-    let x = 0, z = 0;
-    for (let j = 0; j <= SEGMENTS; j++) {
-      if (j > 0) {
-        const um = (j - 0.5) / SEGMENTS, am = a0 + bend * um * um;
-        x += Math.cos(am) * ds;
-        z += Math.sin(am) * ds;
+    const cols = SEGMENTS + 1, side = cols * (ROWS + 1), ds = W / SEGMENTS;
+    const f = this.front, p = this.pos, n = this.nrm;
+
+    for (let r = 0; r <= ROWS; r++) {
+      const v = r / ROWS;
+      const held = this.grabTop ? v : 1 - v;           // 1 along the held corner's edge, 0 at the far one
+      const base = a0 + peel * (held - 0.5);
+      const rowCurl = curl * (0.55 + 0.9 * held);      // the held corner also curls most
+      const y = (v - 0.5) * H;
+      let x = 0, z = 0;
+      for (let j = 0; j <= SEGMENTS; j++) {
+        if (j > 0) {
+          const um = (j - 0.5) / SEGMENTS, am = base + rowCurl * um * um;
+          x += Math.cos(am) * ds;
+          z += Math.sin(am) * ds;
+        }
+        const i = (r * cols + j) * 3;
+        f[i] = x; f[i + 1] = y; f[i + 2] = z + zOff;
       }
-      const u = j / SEGMENTS, a = a0 + bend * u * u;
-      const nx = -Math.sin(a), nz = Math.cos(a);
-      for (let k = 0; k < 2; k++) {
-        const y = k ? H / 2 : -H / 2;
-        const f = (j * 2 + k) * 3, b = (verts + j * 2 + k) * 3;
-        p[f] = x; p[f + 1] = y; p[f + 2] = z + zOff;
-        n[f] = nx; n[f + 1] = 0; n[f + 2] = nz;
-        p[b] = x - nx * THICKNESS; p[b + 1] = y; p[b + 2] = z + zOff - nz * THICKNESS;
-        n[b] = -nx; n[b + 1] = 0; n[b + 2] = -nz;
+    }
+
+    // Normals from neighbouring points, then offset the back face by the paper's thickness.
+    for (let r = 0; r <= ROWS; r++) {
+      const r0 = Math.max(0, r - 1), r1 = Math.min(ROWS, r + 1);
+      for (let j = 0; j <= SEGMENTS; j++) {
+        const j0 = Math.max(0, j - 1), j1 = Math.min(SEGMENTS, j + 1);
+        const a = (r * cols + j0) * 3, b = (r * cols + j1) * 3, c = (r0 * cols + j) * 3, d = (r1 * cols + j) * 3;
+        const ux = f[b] - f[a], uy = f[b + 1] - f[a + 1], uz = f[b + 2] - f[a + 2];
+        const vx = f[d] - f[c], vy = f[d + 1] - f[c + 1], vz = f[d + 2] - f[c + 2];
+        let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+        const len = Math.hypot(nx, ny, nz) || 1;
+        nx /= len; ny /= len; nz /= len;
+        const i = (r * cols + j) * 3, k = (side + r * cols + j) * 3;
+        p[i] = f[i]; p[i + 1] = f[i + 1]; p[i + 2] = f[i + 2];
+        n[i] = nx; n[i + 1] = ny; n[i + 2] = nz;
+        p[k] = f[i] - nx * THICKNESS; p[k + 1] = f[i + 1] - ny * THICKNESS; p[k + 2] = f[i + 2] - nz * THICKNESS;
+        n[k] = -nx; n[k + 1] = -ny; n[k + 2] = -nz;
       }
     }
     this.geo.attributes.position.needsUpdate = true;
@@ -196,7 +234,7 @@ function buildScene() {
 
   scene.add(new THREE.AmbientLight(0xffffff, CONFIG.ambientLight));
   sun = new THREE.DirectionalLight(0xffffff, CONFIG.sunLight);
-  sun.position.set(-0.6, 0.9, 2.4);
+  sun.position.set(-0.9, 1.2, 2.3);   // high and to the left, so a lifted page drops a visible shadow
   sun.castShadow = CONFIG.shadows;
   sun.shadow.mapSize.set(2048, 2048);
   Object.assign(sun.shadow.camera, { left: -2.2, right: 2.2, top: 1.8, bottom: -1.8, near: 0.5, far: 6 });
@@ -235,14 +273,26 @@ let yaw = 0;
 const pan = { x: 0, y: 0 }, cam = { x: 0, y: 0 };
 let needsRender = true;
 
-const easeInOut = t => 0.5 - 0.5 * Math.cos(PI * t);
+// A hand-turned page: eases off the stack, swings through the middle, then settles softly.
+const easeTurn = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 const easeOut = t => 1 - Math.pow(1 - t, 3);
 
-function animateSheet(sheet, to, ease = easeInOut) {
+// Fold a hover lift into the real angle so a turn continues from where the corner already is.
+function absorbPeek(sheet) {
+  if (!sheet.peek) return false;
+  sheet.angle = sheet.turn;
+  sheet.peek = sheet.peekTarget = 0;
+  return true;
+}
+
+function animateSheet(sheet, to, ease = easeTurn) {
+  const lifted = absorbPeek(sheet);
   const from = sheet.angle;
   if (from === to) { sheet.anim = null; return; }
   // Only pick the curl direction when starting flat; changing it mid-turn would make the page jump.
-  if (from === 0 || from === PI) sheet.dir = to > from ? 1 : -1;
+  // A page lifted by hover already has its direction and held corner.
+  if (from === 0 || from === PI) { sheet.dir = to > from ? 1 : -1; sheet.grabTop = false; }
+  else if (lifted && Math.sign(to - from) !== sheet.dir) sheet.dir = -sheet.dir;
   sheet.anim = { from, to, start: performance.now(), dur: Math.max(250, CONFIG.flipDuration * Math.abs(to - from) / PI), ease };
   playFlipSound();
   needsRender = true;
@@ -338,22 +388,31 @@ function frame(now) {
   lastT = now;
   let busy = dragging;
 
+  const kPeek = 1 - Math.exp(-dt * 14);
   for (const s of sheets) {
-    if (!s.anim) continue;
-    const t = Math.min(1, (now - s.anim.start) / s.anim.dur);
-    s.angle = s.anim.from + (s.anim.to - s.anim.from) * s.anim.ease(t);
-    if (t >= 1) { s.angle = s.anim.to; s.anim = null; }
-    s.update();
-    busy = true;
+    let moved = false;
+    if (s.anim) {
+      const t = Math.min(1, (now - s.anim.start) / s.anim.dur);
+      s.angle = s.anim.from + (s.anim.to - s.anim.from) * s.anim.ease(t);
+      if (t >= 1) { s.angle = s.anim.to; s.anim = null; }
+      moved = true;
+    }
+    if (s.peek !== s.peekTarget) {
+      s.peek += (s.peekTarget - s.peek) * kPeek;
+      if (Math.abs(s.peekTarget - s.peek) < 0.002) s.peek = s.peekTarget;
+      moved = true;
+    }
+    if (moved) { s.update(); busy = true; }
   }
 
-  // Only the top sheet of each stack (plus any sheet in motion) needs drawing.
+  // Only the top sheet of each stack (plus any sheet in motion or lifted) needs drawing.
   let rightTop = -1, leftTop = -1;
   sheets.forEach((s, i) => {
+    if (s.peek) return;
     if (s.angle === 0 && rightTop < 0) rightTop = i;
     if (s.angle === PI) leftTop = i;
   });
-  sheets.forEach((s, i) => { s.mesh.visible = (s.angle > 0 && s.angle < PI) || i === rightTop || i === leftTop; });
+  sheets.forEach((s, i) => { s.mesh.visible = (s.angle > 0 && s.angle < PI) || s.peek > 0 || i === rightTop || i === leftTop; });
 
   const offset = bookOffset();
   book.position.x = offset;
@@ -409,6 +468,29 @@ function pageAt(clientX, clientY) {
   return null;
 }
 
+// Mouse near a page's outer corner lifts that corner a little, the way a reader thumbs a page.
+let peeking = null;
+function hoverCorner(clientX, clientY) {
+  let sheet = null, top = false;
+  const p = CONFIG.hoverLift > 0 && zoomTarget <= 1.01 && !dragging ? toWorld(clientX, clientY) : null;
+  if (p && Math.abs(p.y) <= H / 2) {
+    const x = p.x - book.position.x;
+    const nearEdge = Math.abs(x) > W * 0.78 && Math.abs(x) <= W;
+    const nearCorner = Math.abs(p.y) > H * 0.28;
+    if (nearEdge && nearCorner) {
+      const s = x > 0 ? (current < LAST ? sheets[current] : null) : (current > 0 ? sheets[current - 1] : null);
+      if (s && !s.anim && (s.angle === 0 || s.angle === PI)) { sheet = s; top = p.y > 0; }
+    }
+  }
+  if (peeking && peeking !== sheet) peeking.peekTarget = 0;
+  if (sheet) {
+    if (!sheet.peek) { sheet.dir = sheet.angle === 0 ? 1 : -1; sheet.grabTop = top; }
+    sheet.peekTarget = CONFIG.hoverLift;
+  }
+  peeking = sheet;
+  needsRender = true;
+}
+
 function setZoom(z, clientX, clientY) {
   z = Math.max(1, Math.min(CONFIG.maxZoom, z));
   if (clientX != null && z > 1) {
@@ -449,7 +531,7 @@ stage.addEventListener('pointerdown', e => {
   const p = toWorld(e.clientX, e.clientY);
   drag = {
     id: e.pointerId, x0: e.clientX, y0: e.clientY, lastX: e.clientX, lastT: performance.now(), v: 0,
-    moved: false, side, wx0: p ? p.x : 0,
+    moved: false, side, wx0: p ? p.x : 0, wy0: p ? p.y : 0,
     mode: zoomTarget > 1.01 ? 'pan' : side ? 'page' : 'tilt',
     sheet: null, startAngle: 0, panX: pan.x, panY: pan.y, yaw0: yaw,
   };
@@ -463,7 +545,10 @@ stage.addEventListener('pointermove', e => {
     return;
   }
   if (!drag || drag.id !== e.pointerId) {
-    if (e.pointerType === 'mouse') stage.classList.toggle('over-page', !!pageAt(e.clientX, e.clientY) && zoomTarget <= 1.01);
+    if (e.pointerType === 'mouse') {
+      stage.classList.toggle('over-page', !!pageAt(e.clientX, e.clientY) && zoomTarget <= 1.01);
+      hoverCorner(e.clientX, e.clientY);
+    }
     return;
   }
   const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
@@ -475,7 +560,10 @@ stage.addEventListener('pointermove', e => {
     if (drag.mode === 'page') {
       drag.sheet = drag.side === 'right' ? sheets[current] : sheets[current - 1];
       drag.sheet.anim = null;
+      absorbPeek(drag.sheet);
       if (drag.sheet.angle === 0 || drag.sheet.angle === PI) drag.sheet.dir = drag.side === 'right' ? 1 : -1;
+      // the corner nearest where the page was grabbed leads the fold
+      if (drag.sheet.angle < 0.3 || drag.sheet.angle > PI - 0.3) drag.sheet.grabTop = drag.wy0 > 0;
       drag.startAngle = drag.sheet.angle;
       playFlipSound();
     }
@@ -542,6 +630,7 @@ function cancelDrag() {
   stage.classList.remove('dragging');
 }
 
+stage.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !dragging) hoverCorner(-1e4, -1e4); });
 stage.addEventListener('pointerup', endPointer);
 stage.addEventListener('pointercancel', endPointer);
 stage.addEventListener('wheel', e => {
