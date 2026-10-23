@@ -23,6 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Browsers keep flipbook.js/css for ~10 minutes; stamping the commit into their URLs
+      # makes every deploy load the matching copy instead of a stale one.
+      - name: Stamp asset versions
+        run: |
+          find . -name index.html -not -path './.git/*' -exec sed -i "s/?v=dev/?v=${GITHUB_SHA::7}/g" {} +
+          sed -i "s#'pages/pages.js'#'pages/pages.js?v=${GITHUB_SHA::7}'#" flipbook.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
