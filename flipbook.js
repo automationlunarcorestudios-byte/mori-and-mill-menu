@@ -17,6 +17,7 @@ const CONFIG = Object.assign({
   sound: true,             //                               (sound true)
   music: null,             // background music file, relative to the edition's index.html; null = none
   musicVolume: 0.35,
+  musicGateText: 'Open the menu',   // button shown when the browser needs a tap before music can play
   topSpace: 58,            // px kept clear above the book (more when an edition decorates the top edge)
   clearStage: false,       // true = draw the book over a see-through stage, so an edition's backdrop shows
   ambientLight: 0.62,      // overall page brightness
@@ -684,12 +685,13 @@ function playFlipSound() {
 // ---------------------------------------------------------------------------
 // Toolbar
 // ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-// Background music — an edition opts in with CONFIG.music. Browsers only allow sound after the
-// reader interacts, so it fades in on their first tap, click or key press unless they muted it.
+// Background music — an edition opts in with CONFIG.music, and it always starts on.
+// It plays straight away where the browser allows; where the browser wants a tap first,
+// the loading screen ends with an "Open the menu" button that starts it (see musicGate).
 // ---------------------------------------------------------------------------
 const NOTE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>';
 const NOTE_OFF_ICON = NOTE_ICON.replace('</svg>', '<path d="M3 3l18 18"/></svg>');
+let music = null;
 
 function setupMusic() {
   if (!CONFIG.music) return;
@@ -698,8 +700,7 @@ function setupMusic() {
   audio.preload = 'auto';
   audio.volume = 0;
 
-  let on = true;                       // the reader's choice; remembered between visits
-  try { on = localStorage.getItem('flipbook-music') !== 'off'; } catch (_) {}
+  let on = true;                       // false once the reader mutes, for this visit only
   let fadeTimer = null;
 
   const btn = document.createElement('button');
@@ -734,7 +735,6 @@ function setupMusic() {
   btn.addEventListener('click', e => {
     e.stopPropagation();
     on = audio.paused;
-    try { localStorage.setItem('flipbook-music', on ? 'on' : 'off'); } catch (_) {}
     on ? start() : stop();
     render();
   });
@@ -756,6 +756,30 @@ function setupMusic() {
   audio.addEventListener('pause', render);
   audio.addEventListener('play', render);
   render();
+
+  // Try to start without a tap. Resolves false when the browser refuses until the reader interacts.
+  const autoplay = () => {
+    const policy = navigator.getAutoplayPolicy ? navigator.getAutoplayPolicy('mediaelement') : null;
+    if (policy && policy !== 'allowed') return Promise.resolve(false);
+    const tried = audio.play().then(() => { fadeTo(CONFIG.musicVolume, 1500); render(); return true; }, () => false);
+    // still buffering after 1.5s means it wasn't refused; open the book and let it start when ready
+    return Promise.race([tried, new Promise(r => setTimeout(() => r(true), 1500))]);
+  };
+  return { autoplay, play: () => { on = true; start(); } };
+}
+
+// Shown only when the browser blocked music: one tap opens the book and starts the music together.
+function musicGate() {
+  return new Promise(resolve => {
+    const pre = $('preloader');
+    pre.classList.add('gate');
+    pre.innerHTML = `<div class="gate-box"><p class="gate-title"></p><button class="gate-btn" id="gate-btn">${NOTE_ICON}<span></span></button></div>`;
+    pre.querySelector('.gate-title').textContent = document.title;
+    pre.querySelector('.gate-btn span').textContent = CONFIG.musicGateText;
+    const btn = $('gate-btn');
+    btn.focus();
+    btn.addEventListener('click', () => { music.play(); resolve(); }, { once: true });
+  });
 }
 
 let autoplayTimer = null;
@@ -867,7 +891,7 @@ function buildUI() {
     if (!e.target.closest('.menu, .panel, #btn-more, #btn-thumbs')) closeOverlays();
   });
   window.addEventListener('resize', layout);
-  setupMusic();
+  music = setupMusic();
   setZoom(1);
 }
 
@@ -894,5 +918,6 @@ function buildUI() {
   const startPage = parseInt(new URLSearchParams(location.search).get('page'), 10);
   if (startPage > 1) goToPage(startPage);
   requestAnimationFrame(frame);
+  if (music && !(await music.autoplay())) await musicGate();
   $('preloader').classList.add('done');
 })();

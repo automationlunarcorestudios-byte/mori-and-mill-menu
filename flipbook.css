@@ -80,6 +80,16 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); c
   border-top-color: var(--counter); animation: spin .9s linear infinite; margin: 0 auto 14px; }
 .preloader p { margin: 0; font-size: 13px; letter-spacing: .08em; opacity: .8; text-align: center; }
 @keyframes spin { to { transform: rotate(360deg); } }
+/* "Open the menu" button, shown when the browser needs a tap before music can play */
+.preloader.gate { background: rgba(6, 22, 18, .55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.gate-box { display: grid; justify-items: center; gap: 18px; padding: 0 16px; text-align: center; }
+.preloader .gate-title { font-size: 14px; letter-spacing: .16em; text-transform: uppercase; color: var(--counter); opacity: 1; }
+.gate-btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; border-radius: 999px; cursor: pointer;
+  background: var(--btn-bg); color: var(--btn-text); border: 2px solid #fff; font: inherit; font-weight: 800; font-size: 17px;
+  letter-spacing: .06em; box-shadow: 0 8px 28px rgba(0,0,0,.45); transition: transform .15s; }
+.gate-btn svg { width: 22px; height: 22px; }
+.gate-btn:hover { transform: translateY(-2px); }
+.gate-btn:focus-visible { outline: 2px solid var(--counter); outline-offset: 3px; }
 
 .toast { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); z-index: 30; padding: 9px 16px;
   border-radius: 6px; background: var(--toast-bg); color: var(--ui); font-size: 13px; opacity: 0; transition: opacity .25s; pointer-events: none; }
