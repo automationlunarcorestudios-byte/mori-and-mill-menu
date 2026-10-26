@@ -9,7 +9,7 @@
 #   pages-embedded.js    the same pages inlined, so index.html also works
 #                        when opened straight from disk (file://)
 param(
-  [string]$Source = (Join-Path $PSScriptRoot '..\mori and mill page\ai-catalog-photos'),
+  [string]$Source = (Join-Path $PSScriptRoot '..\Updated mori & mill menu'),
   [string]$Out = 'pages',
   [int]$Quality = 88
 )
