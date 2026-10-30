@@ -313,6 +313,9 @@
 
   function redraw() {
     W = window.innerWidth; H = window.innerHeight;
+    // a window with no size yet (hidden tab, mid-resize) gets drawn on the next layout instead
+    if (!W || !H) return;
+    if (rect && !['left', 'top', 'width', 'height'].every(k => Number.isFinite(rect[k]))) rect = null;
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     u = Math.max(0.5, Math.min(1.15, Math.min(W / 1280, H / 800)));
     drawBackdrop();

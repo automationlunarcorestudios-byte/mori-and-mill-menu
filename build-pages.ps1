@@ -9,7 +9,7 @@
 #   pages-embedded.js    the same pages inlined, so index.html also works
 #                        when opened straight from disk (file://)
 param(
-  [string]$Source = (Join-Path $PSScriptRoot '..\Updated mori & mill menu'),
+  [string]$Source = (Join-Path $PSScriptRoot '..\1030 updated drinks'),
   [string]$Out = 'pages',
   [int]$Quality = 88
 )
