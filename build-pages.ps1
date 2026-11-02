@@ -1,7 +1,7 @@
 # Rebuilds a flipbook edition's pages from the catalog artwork.
 # Run after adding, removing or replacing page images:
 #   powershell -ExecutionPolicy Bypass -File build-pages.ps1
-#   powershell -ExecutionPolicy Bypass -File build-pages.ps1 -Source ..\christmas-menu -Out christmas\pages
+#   powershell -ExecutionPolicy Bypass -File build-pages.ps1 -Source ..\christmas-menu -Out christmas-promo\pages
 #
 # Reads catalog-manifest.json (page order + titles) from -Source and writes to -Out:
 #   NN.jpg               web-sized copies of each page

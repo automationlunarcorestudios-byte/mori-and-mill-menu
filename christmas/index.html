@@ -1,16 +1,17 @@
 <!doctype html>
+<!-- The main menu, served at /christmas/ as well as the site root. Pages come from ../pages/. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Mori &amp; Mill Christmas Menu</title>
-<meta name="description" content="Flip through the Mori & Mill Christmas menu.">
+<title>Mori &amp; Mill Menu</title>
+<meta name="description" content="Flip through the Mori & Mill menu.">
 <link rel="stylesheet" href="../flipbook.css?v=dev">
 <link rel="stylesheet" href="theme.css?v=dev">
 </head>
 <body>
 
-<div id="stage" aria-label="Mori & Mill Christmas menu flipbook" role="img"></div>
+<div id="stage" aria-label="Mori & Mill menu flipbook" role="img"></div>
 
 <header class="topbar">
   <button class="icon-btn" id="btn-thumbs" aria-label="Show all pages" aria-controls="thumbs-panel" aria-expanded="false">
@@ -65,12 +66,12 @@
   </button>
 </div>
 
-<div class="preloader" id="preloader"><div><div class="ring"></div><p id="preloader-text">Loading Christmas menu…</p></div></div>
+<div class="preloader" id="preloader"><div><div class="ring"></div><p id="preloader-text">Loading menu…</p></div></div>
 <div class="toast" id="toast" role="status"></div>
 <div class="sr-only" id="announce" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>window.FLIPBOOK_CONFIG = { music: 'music/deck-the-halls.mp3', topSpace: 92, clearStage: true };</script>
+<script>window.FLIPBOOK_CONFIG = { music: 'music/deck-the-halls.mp3', pagesBase: '../', topSpace: 92, clearStage: true };</script>
 <script src="../flipbook.js?v=dev"></script>
 <script src="decor.js?v=dev"></script>
 </body>

@@ -18,6 +18,7 @@ const CONFIG = Object.assign({
   music: null,             // background music file, relative to the edition's index.html; null = none
   musicVolume: 0.35,
   musicGateText: 'Open the menu',   // button shown when the browser needs a tap before music can play
+  pagesBase: '',           // where this edition's pages/ folder is, relative to its index.html ('../' = one folder up)
   topSpace: 58,            // px kept clear above the book (more when an edition decorates the top edge)
   clearStage: false,       // true = draw the book over a see-through stage, so an edition's backdrop shows
   ambientLight: 0.62,      // overall page brightness
@@ -56,11 +57,12 @@ function loadScript(src) {
 }
 
 async function loadPages() {
-  await loadScript('pages/pages.js');
-  const pages = window.FLIPBOOK_PAGES.map(p => ({ ...p }));
+  const base = CONFIG.pagesBase;
+  await loadScript(base + 'pages/pages.js');
+  const pages = window.FLIPBOOK_PAGES.map(p => ({ ...p, src: base + p.src }));
   if (location.protocol === 'file:') {
     // Browsers won't let WebGL read images straight off the disk, so use the inlined copies.
-    await loadScript('pages/pages-embedded.js');
+    await loadScript(base + 'pages/pages-embedded.js');
     pages.forEach((p, i) => { p.src = window.FLIPBOOK_PAGE_DATA[i]; });
   }
   let loaded = 0;
