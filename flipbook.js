@@ -28,6 +28,7 @@ const CONFIG = Object.assign({
   maxZoom: 3,
   autoplayInterval: 3000,  //                               (autoplayInterval 3000)
   autoplayOnStart: true,   // turn pages by itself until the reader first touches, clicks, scrolls or presses a key
+  autoplayResumeAfter: 30000, // ms of no activity before it starts turning pages by itself again; 0 = never
   singlePageBelow: 768,    // portrait screens narrower than this show one page at a time (responsiveViewTreshold)
 }, window.FLIPBOOK_CONFIG);
 
@@ -833,13 +834,28 @@ function buildUI() {
   $('btn-zoom-in').addEventListener('click', () => setZoom(zoomTarget * 1.5));
   $('btn-zoom-out').addEventListener('click', () => setZoom(zoomTarget / 1.5));
   $('btn-play').addEventListener('click', () => setAutoplay(!autoplayTimer));
-  // Any touch, click, key or scroll by the reader stops automatic page turning for good;
-  // only the play button starts it again.
-  const stopOnInteraction = e => {
-    if (!autoplayTimer || (e.target.closest && e.target.closest('#btn-play'))) return;
-    setAutoplay(false);
+  // Any touch, click, key or scroll by the reader stops automatic page turning. Once nobody has
+  // touched it for CONFIG.autoplayResumeAfter, it tidies up and turns pages by itself again,
+  // like a shop-window display. Mouse movement only postpones that; it doesn't stop anything.
+  let idleTimer = null;
+  const resumeWhenIdle = () => {
+    clearTimeout(idleTimer);
+    idleTimer = null;
+    if (!CONFIG.autoplayResumeAfter) return;
+    idleTimer = setTimeout(() => {
+      idleTimer = null;
+      if (autoplayTimer || dragging) return;
+      closeOverlays();
+      setZoom(1);
+      setAutoplay(true);
+    }, CONFIG.autoplayResumeAfter);
   };
-  ['pointerdown', 'keydown', 'wheel'].forEach(type => document.addEventListener(type, stopOnInteraction, { capture: true, passive: true }));
+  const onActivity = e => {
+    if (autoplayTimer && !(e.target.closest && e.target.closest('#btn-play'))) setAutoplay(false);
+    resumeWhenIdle();
+  };
+  ['pointerdown', 'keydown', 'wheel'].forEach(type => document.addEventListener(type, onActivity, { capture: true, passive: true }));
+  document.addEventListener('pointermove', () => { if (idleTimer) resumeWhenIdle(); }, { passive: true });
   $('btn-thumbs').addEventListener('click', e => {
     e.stopPropagation();
     const open = !$('thumbs-panel').classList.contains('open');
