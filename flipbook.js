@@ -27,6 +27,7 @@ const CONFIG = Object.assign({
   panMax: 20,              // degrees the book tilts when dragging the background (panMin/panMax ±20)
   maxZoom: 3,
   autoplayInterval: 3000,  //                               (autoplayInterval 3000)
+  autoplayOnStart: true,   // turn pages by itself until the reader first touches, clicks, scrolls or presses a key
   singlePageBelow: 768,    // portrait screens narrower than this show one page at a time (responsiveViewTreshold)
 }, window.FLIPBOOK_CONFIG);
 
@@ -832,6 +833,13 @@ function buildUI() {
   $('btn-zoom-in').addEventListener('click', () => setZoom(zoomTarget * 1.5));
   $('btn-zoom-out').addEventListener('click', () => setZoom(zoomTarget / 1.5));
   $('btn-play').addEventListener('click', () => setAutoplay(!autoplayTimer));
+  // Any touch, click, key or scroll by the reader stops automatic page turning for good;
+  // only the play button starts it again.
+  const stopOnInteraction = e => {
+    if (!autoplayTimer || (e.target.closest && e.target.closest('#btn-play'))) return;
+    setAutoplay(false);
+  };
+  ['pointerdown', 'keydown', 'wheel'].forEach(type => document.addEventListener(type, stopOnInteraction, { capture: true, passive: true }));
   $('btn-thumbs').addEventListener('click', e => {
     e.stopPropagation();
     const open = !$('thumbs-panel').classList.contains('open');
@@ -920,4 +928,5 @@ function buildUI() {
   requestAnimationFrame(frame);
   if (music && !(await music.autoplay())) await musicGate();
   $('preloader').classList.add('done');
+  if (CONFIG.autoplayOnStart) setAutoplay(true);
 })();
