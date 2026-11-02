@@ -7,7 +7,7 @@ const CONFIG = Object.assign({
   // Bottom-left buttons, in order. style: 'outline' gives the lighter secondary look.
   buttons: [
     { text: 'ORDER NOW', url: 'https://www.facebook.com/messages/t/1076302612237604' },   // Mori & Mill Messenger
-    { text: 'RESERVE NOW', url: 'https://moriandmill.com/digitalmenu-page', style: 'outline' },
+    { text: 'RESERVE NOW', url: 'https://moriandmill.com/', style: 'outline' },
   ],
   flipDuration: 900,       // ms per page turn             (pageFlipDuration 1)
   pageBend: 0.5,           // paper curl: 0 = stiff board, 0.55 = floppy magazine (pageHardness)
